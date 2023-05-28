@@ -1,1 +1,1 @@
-Collection of all useful algorithms I find it useful to be implemented. Will keep adding to this list whenever possible
+Collection of all useful algorithms I find it useful to be implemented. Will keep adding to this list whenever possible.
