@@ -1,4 +1,4 @@
-// Insertion Sort Algorithm
+// Insertion Sort Ascending and Descending
 
 #include <iostream>
 #include <array>
