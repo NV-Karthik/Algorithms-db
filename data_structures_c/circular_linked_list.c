@@ -1,4 +1,4 @@
-// linked list data structure and some of its methods
+// circular linked list (CLL) is just a linked list where the last node points to the first (head) node instead of pointing to NULL
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -14,19 +14,19 @@ struct node
 struct node* createLinkedList(int data) {
     struct node* head = (struct node*) malloc(sizeof(struct node));
     head->data = data;
-    head->next = NULL;
+    head->next = head; // the only node of CLL points to itself 
     return head;
 }
 
 // Traverse all nodes
 void traverseList(struct node* head) {
-    struct node* ptr = head;
+    struct node* ptr = head; // donot update the head in case of CLL
     int num_nodes = 0;
-    while (ptr != NULL) {
+    do {
         printf("%d ", ptr->data);
         ptr = ptr->next;
         num_nodes ++;
-    }
+    }while (ptr != head);
 
     printf("\nNo of nodes = %d\n", num_nodes);
 }
@@ -34,11 +34,11 @@ void traverseList(struct node* head) {
 // sum of all data
 int getSum(struct node* head) {
     int sum = 0;
-
-    while(head != NULL) {
+    struct node* ptr = head;
+    do {
         sum += head->data;
-        head = head->next;
-    }
+        ptr = ptr->next;
+    } while(ptr != head);
 
     return sum;
 }
@@ -46,13 +46,14 @@ int getSum(struct node* head) {
 // takes in value(data) in linked list gives out index of first node occuring with that value
 int getIndex(struct node * head, int value) {
     int index = 0;
-    while(head != NULL) {
-        if (head->data == value) {
+    struct node* ptr = head;
+    do {
+        if (ptr->data == value) {
             return index;
         }
         index ++;
-        head = head->next;
-    }
+        ptr = ptr->next;
+    } while(ptr != head);
     return -1; // -1 gets returned if the reqd node is not found
 }
 
@@ -60,14 +61,16 @@ int getIndex(struct node * head, int value) {
 // note that its important to remove each malloced node without losing pointers to other nodes
 void freeLinkedList(struct node* head) {
     struct node* temp;
+    struct node* ptr = head;
     // int count = 0; // uncomment these three lines for free-ing log
-    while(head != NULL) {
-        temp = head;
-        head = head->next;
+    do {
+        temp = ptr;
+        ptr = ptr->next;
         free(temp);
         // printf("freed node - %d\n", count);
         // count ++;
-    }
+    } while(ptr != head);
+    printf("Linked list erased from memory");
 }
 
 // ****** node append and insertion methods ******
@@ -79,19 +82,20 @@ void freeLinkedList(struct node* head) {
 */
 
 // inserts node at the end of linked list
-// similar to popNode appendNode method donot require reassigning it to head pointer again
-void appendNode(struct node* current_node, int data) {
+// in CCL append is just insert at beginning (insert at index == 0)
+void appendNode(struct node* head, int data) {
     struct node* next_node = (struct node*) malloc(sizeof(struct node));
-    
-    while(current_node->next != NULL) {
-        current_node = current_node->next;
-    }
+    struct node* index_ptr = head;
+
+    do {
+        index_ptr = index_ptr->next;
+    } while(index_ptr->next != head);
     // linking current and next node
-    current_node->next = next_node;
+    index_ptr->next = next_node;
     
     // setting properties of next_node (now the current node)
     next_node->data = data;
-    next_node->next = NULL;
+    next_node->next = head;
 }
 
 // inserts node at a given index and returns the head node
@@ -100,9 +104,18 @@ struct node* insertNode(struct node* head, int index, int data) {
     
     // insert at the beginning
     if (index == 0) {
+        struct node* index_ptr;
+
         ptr->next = head; // assign old head as the next node of newly created node
         ptr->data = data; // assign given data to the new node
-        return ptr; // rename the new node pointer as head
+
+        // for CCL, traverse to the end of list and update old head to new head
+        do {
+            index_ptr = index_ptr->next;
+        } while(index_ptr->next != head);
+        index_ptr->next = ptr;
+
+        return ptr; // rename the new node pointer as head (by assigning this to head in main)
     }
     // insert at a given index (also works as append function if last index is given)
     else {
@@ -112,7 +125,7 @@ struct node* insertNode(struct node* head, int index, int data) {
             current = current->next; // this doesnot update head node's address refer note above
 
             // error handling
-            if (current == NULL) {
+            if (current == head) {
                 printf("Failure inserting node, index is out of linked list bounds\n");
                 free(ptr);
                 return head;
@@ -128,7 +141,7 @@ struct node* insertNode(struct node* head, int index, int data) {
     }
 }
 
-// inserts node after a given node (requires node address)
+// inserts node after the given (named previous) node (requires node address)
 void insertAfter(struct node* previous_node, int data) {
     struct node* ptr = (struct node *) malloc(sizeof(struct node));
 
@@ -156,8 +169,17 @@ struct node* deleteNode(struct node* head, bool isIndex, int index_or_value) {
     // delete the beginning node
     if (index == 0) {
         struct node* ptr = head;
-        head = head->next;
-        free(ptr);
+        struct node* index_ptr = head;
+        
+        // first taverse to the end and update the pointer pointing to head 
+        do {
+            index_ptr = index_ptr->next;
+        } while(index_ptr->next != head);
+        // now index_ptr points to last node
+        index_ptr->next = head->next; // update last pointer
+        head = head->next; // update head to the second node
+
+        free(ptr); // erase old node
     }
     else if (index == -1)
     {
@@ -184,12 +206,18 @@ struct node* deleteNode(struct node* head, bool isIndex, int index_or_value) {
 void popNode(struct node* head) {
     struct node* prev_node = head;
     struct node* curr_node = head->next;
-    while (curr_node->next != NULL) {
+    
+    if (curr_node == head) {
+        printf("The linked list seems to have only one node, and it is not removed use freeLinkedList method instead.");
+        return;
+    }
+
+    while (curr_node->next != head) {
         prev_node = prev_node->next;
         curr_node = curr_node->next;
-    } // after the loop the prev_node will be 1 node before the last one 
+    } // after the loop curr node will be the last one, prev_node will be 1 node before it 
 
-    prev_node->next = NULL;
+    prev_node->next = head;
     free(curr_node);
 }
 

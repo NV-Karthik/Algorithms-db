@@ -1,4 +1,5 @@
-// linked list data structure and some of its methods
+// Doubly linked list (DLL) implementation with methods
+// Doubly linked list will have a [prev -- data -- next] struct for each node
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -7,18 +8,20 @@
 struct node
 {
     int data;
+    struct node* prev;
     struct node* next;
 };
 
-// Create linked list by adding the head node
+// Create DLL by adding the head node
 struct node* createLinkedList(int data) {
     struct node* head = (struct node*) malloc(sizeof(struct node));
     head->data = data;
+    head->prev = NULL;
     head->next = NULL;
     return head;
 }
 
-// Traverse all nodes
+// Traverse all nodes of DLL
 void traverseList(struct node* head) {
     struct node* ptr = head;
     int num_nodes = 0;
@@ -68,6 +71,7 @@ void freeLinkedList(struct node* head) {
         // printf("freed node - %d\n", count);
         // count ++;
     }
+    printf("Doubly Linked List Freed");
 }
 
 // ****** node append and insertion methods ******
@@ -91,6 +95,7 @@ void appendNode(struct node* current_node, int data) {
     
     // setting properties of next_node (now the current node)
     next_node->data = data;
+    next_node->prev = current_node;
     next_node->next = NULL;
 }
 
@@ -101,8 +106,14 @@ struct node* insertNode(struct node* head, int index, int data) {
     // insert at the beginning
     if (index == 0) {
         ptr->next = head; // assign old head as the next node of newly created node
+        ptr->prev = NULL; // prev node of new head is null
         ptr->data = data; // assign given data to the new node
-        return ptr; // rename the new node pointer as head
+
+        // change prev of next node to point to our new node
+        struct node * next_node = ptr->next;
+        next_node->prev = ptr;
+
+        return ptr; // rename the new node pointer as head (by assigning in main)
     }
     // insert at a given index (also works as append function if last index is given)
     else {
@@ -119,11 +130,19 @@ struct node* insertNode(struct node* head, int index, int data) {
             }
         }
         // assign reqd data and next to new pointer (do this before step 3!!)
+        ptr->prev = current;
         ptr->next = current->next;
         ptr->data = data;
         
         // change next of prev node to point to our new node
         current->next = ptr;
+
+        // change prev of next node to point to our new node
+        struct node * next_node = ptr->next;
+        if (next_node != NULL) {
+            next_node->prev = ptr;
+        } // this check is necessary to avoid crashes if last index is entered
+        
         return head;
     }
 }
@@ -132,10 +151,17 @@ struct node* insertNode(struct node* head, int index, int data) {
 void insertAfter(struct node* previous_node, int data) {
     struct node* ptr = (struct node *) malloc(sizeof(struct node));
 
+    // assigning data for node to be inserted
     ptr->next = previous_node->next;
     ptr->data = data;
+    ptr->prev = previous_node;
 
+    // update previous node's next pointer
     previous_node->next = ptr;
+
+    // update next node's previous pointer
+    struct node* next_node = ptr->next;
+    next_node->prev = ptr;
 }
 
 // ****** node deletion methods ******
@@ -158,6 +184,7 @@ struct node* deleteNode(struct node* head, bool isIndex, int index_or_value) {
         struct node* ptr = head;
         head = head->next;
         free(ptr);
+        head->prev = NULL;
     }
     else if (index == -1)
     {
@@ -167,13 +194,19 @@ struct node* deleteNode(struct node* head, bool isIndex, int index_or_value) {
     else {
         struct node* ptr_prev_node = head;
         struct node* ptr_ith_node;
+        struct node* ptr_next_node;
         
         for (int i=0; i<index-1; i++){
             ptr_prev_node = ptr_prev_node->next;
         }
         ptr_ith_node = ptr_prev_node->next;
+        ptr_next_node = ptr_ith_node->next;
 
-        ptr_prev_node->next = ptr_ith_node->next;
+        ptr_prev_node->next = ptr_next_node;
+        if (ptr_next_node != NULL) {
+            ptr_next_node->prev = ptr_prev_node;
+        } // this check is necessary to avoid crashes if last index is entered
+
         free(ptr_ith_node);        
     }
 
@@ -182,12 +215,14 @@ struct node* deleteNode(struct node* head, bool isIndex, int index_or_value) {
 
 // similar to append, popNode donot require assigning it back to head node again
 void popNode(struct node* head) {
-    struct node* prev_node = head;
-    struct node* curr_node = head->next;
+    struct node* prev_node;
+    struct node* next_node;
+    struct node* curr_node = head;
     while (curr_node->next != NULL) {
-        prev_node = prev_node->next;
         curr_node = curr_node->next;
-    } // after the loop the prev_node will be 1 node before the last one 
+    } // after the loop the curr_node will be the last node 
+
+    prev_node = curr_node->prev;
 
     prev_node->next = NULL;
     free(curr_node);
@@ -221,7 +256,7 @@ int main() {
     printf("display after adding 99 as last node\n");
     traverseList(myLL);
 
-    // testing insert after node at 4th index
+    // testing insertAfter node at 4th index
     struct node* address = myLL;
     for (int i=0; i<4; i++) {
         address = address->next;
